@@ -6,35 +6,39 @@ require "capybara"
 
 class PlayersController < ApplicationController
   def index
-    Capybara.register_driver :selenium do |app|
-      Capybara::Selenium::Driver.new(app, browser: :chrome)
+    #  Capybara.register_driver :selenium do |app|
+    #    Capybara::Selenium::Driver.new(app, browser: :chrome)
+    #  end
+    #
+    #  Capybara.javascript_driver = :chrome
+    #  Capybara.configure do |config|
+    #    config.default_max_wait_time = 10
+    #    config.default_driver = :selenium
+    #  end
+    #  options = Selenium::WebDriver::Options.chrome
+    #  options.page_load_strategy = :eager
+    #
+    #  driver = Selenium::WebDriver.for :chrome, options: options
+    #   first_match = 1798
+    # while (match_no > first_match)
+    #  driver.navigate.to "https://www.iplt20.com/match/2025/#{match_no}"
+    #   sleep 6
+    #  driver.find_element(link_text: "SCORECARD").click
+    #    sleep 10
+    source = Rails.cache.fetch("source_#{params[:id]}") do
+      Source.find_by(match_no: params[:id])
     end
-
-    Capybara.javascript_driver = :chrome
-    Capybara.configure do |config|
-      config.default_max_wait_time = 10
-      config.default_driver = :selenium
-    end
-    options = Selenium::WebDriver::Options.chrome
-    options.page_load_strategy = :eager
-
-    driver = Selenium::WebDriver.for :chrome, options: options
-
-    driver.navigate.to "https://www.iplt20.com/matches/results"
-    driver.manage.timeouts.implicit_wait = 100
-    driver.find_element(link_text: "Match Centre").click
-    sleep 6
-    driver.find_element(link_text: "SCORECARD").click
-
-    sleep 10
-
-    html = Nokogiri::HTML(driver.page_source)
+    html = Nokogiri::HTML(source.html)
+    id = params[:id]
     # Venue
     venue = html.at_css('span[ng-bind="matchSummary.GroundName"]')&.text&.strip
-
+    match_no = html.at_css(".matchOrder.mob-hide.ng-binding.ng-scope")&.text&.strip
+    match_no = match_no.gsub("Match ", "").to_i
     # Winner
-    winner_raw = html.at_css(".ms-matchComments.ng-binding.ng-scope")&.text&.strip
-    winner = winner_raw.split("Won by").first.strip if winner_raw
+    #  winner_raw = html.at_css(".ms-matchComments.ng-binding.ng-scope")&.text&.strip
+    winner = html.at_css(".ms-matchComments.ng-binding.ng-scope")&.text&.strip
+
+    #winner = winner_raw.split("Won by").first.strip if winner_raw
 
     # Innings
     innings_elements = html.css(".ap-total-runs.ng-binding.ng-scope")
@@ -64,7 +68,8 @@ class PlayersController < ApplicationController
     # Teams
     team_text = html.at_css('li:has(span:contains("Match")) span.ng-binding')&.text&.strip
     team_I, team_II = team_text.split(" vs ").map(&:strip)
-
+    #Match number
+    match_number = html.at_css(".matchOrder.mob-hide.ng-binding.ng-scope")
     # Toss
     toss_text = html.at_css('li:has(span:contains("Toss")) span.ng-binding')&.text&.strip
     toss_details = toss_text
@@ -74,11 +79,11 @@ class PlayersController < ApplicationController
     decision = toss_text.include?("Bat") ? "Bat" : "Field"
     first_batting = decision == "Bat" ? toss : (toss == team_I ? team_II : team_I)
 
-    sleep 5
+    #  sleep 5
     batsmen_data = []
     bowlers_data = []
     extras = []
-
+    batsmen_run = []
     max_runs = 0
     max_wickets = 0
     top_run_getter = " "
@@ -118,6 +123,12 @@ class PlayersController < ApplicationController
         batsmen_data << [name, dismissal, runs, balls, fours, sixes, strike_rate]
       else
         bowlers_data << [name, dismissal, runs, balls, fours, sixes, strike_rate, dots]
+
+        if max_wickets == sixes.to_i
+          if min_economy > strike_rate.to_i
+            top_wicket_taker = name
+          end
+        end
         if max_wickets < sixes.to_i
           top_wicket_taker = name
           max_wickets = sixes.to_i
@@ -136,6 +147,13 @@ class PlayersController < ApplicationController
           mvp = name
         end
       end
+    end
+
+    batsmen_run = batsmen_data.map do |player|
+      {
+        name: player[0],
+        runs: player[2].to_i,
+      }
     end
 
     partnerships = html.css("ul.partnerContent > li").map do |li|
@@ -159,19 +177,21 @@ class PlayersController < ApplicationController
     bp_index_I = partnership_runs.index(partnership_runs.max)
     best_partnership_I = partnerships[bp_index_I]
 
-    sleep 15
+    #  sleep 15
 
     innings_elements = html.css("a.ap-inner-tb-click")
 
     second_tab = innings_elements[1].text.strip
 
     first_tab = innings_elements[0].text.strip
+    puts first_tab
+    puts second_tab
+    # driver.find_element(link_text: first_tab).click
 
-    driver.find_element(link_text: first_tab).click
-
-    sleep 12
-    html1 = Nokogiri::HTML(driver.page_source)
+    #     sleep 7
+    html1 = Nokogiri::HTML(source.html1)
     batsmen_data_II = []
+    batsmen_run_II = []
     bowlers_data_II = []
     extras_II = []
     html1.css("tbody.team1 tr").each do |row|
@@ -266,27 +286,49 @@ class PlayersController < ApplicationController
     best_partnership_II = partnerships[bp_index_II]
 
     best_partnership = partnership_runs.max > partnership_runs_II.max ? best_partnership_I : best_partnership_II
+    #team_I_id = Team.where(name: team_I).first.id
+    #   team_II_id = Team.where(name: team_II).first.id
 
-    driver.navigate.to "https://iplt20.com/stats/2025"
-    sleep 5
-    bat = Nokogiri::HTML(driver.page_source)
-    sleep 5
+    batsmen_run_II = batsmen_data_II.map do |player|
+      {
+        name: player[0],
+        runs: player[2].to_i,
+      }
+    end
+    #    Match.create!(venue: venue, innings_I: innings_I, innings_II: innings_II, toss: toss, man_of_the_match: man_of_the_match, winner: winner, team_I_id: team_I_id, team_II_id: team_II_id, date: date, first_batting: first_batting, match_no: match_no)
+    #   Source.create!(html: html, html1: html1)
+    #  match_no = match_no - 1
+    # sleep 5
+    # end
+    #driver.navigate.to "https://iplt20.com/stats/2025"
+    #   sleep 5
+    player_stats = Rails.cache.fetch("/") do
+      TopPlayer.find_by(id: 1)
+    end
+    bat = Nokogiri::HTML(player_stats.batters)
+    # sleep 5
     players = bat.xpath("//table[contains(@class,'st-table statsTable ng-scope')]")
-    top_batsmen = bat.css("div.st-ply-name.ng-binding").map { |node| node.text.strip }.uniq
-    sleep 5
-    elements = driver.find_elements(:css, ".cSBDisplay")[1].click
-    sleep 3
-    elements = driver.find_elements(:css, ".cSBListFItems")[1].click
-    sleep 3
-    elements = driver.find_elements(:css, ".cSBListItems")[31].click
-    sleep 3
+    top_batsmen = bat.css(".st-table.statsTable.ng-scope tbody tr").map do |row|
+      row.css("td").map { |td| td.text.strip }
+    end
+    #    sleep 5
+    #    elements = driver.find_elements(:css, ".cSBDisplay")[1].click
+    #    sleep 3
+    #    elements = driver.find_elements(:css, ".cSBListFItems")[1].click
+    #    sleep 3
+    #    elements = driver.find_elements(:css, ".cSBListItems")[31].click
+    #    sleep 3
+    #
+    bowl = Nokogiri::HTML(player_stats.bowlers)
+    players = bowl.xpath("//table[contains(@class,'st-table statsTable ng-scope')]")
+    # top_bowlers = bowl.css("div.st-ply-name.ng-binding").map { |node| node.text.strip }.uniq
+    top_bowlers = bowl.css(".st-table.statsTable.ng-scope tbody tr").map do |row|
+      row.css("td").map { |td| td.text.strip }
+    end
 
-    bat = Nokogiri::HTML(driver.page_source)
-
-    players = bat.xpath("//table[contains(@class,'st-table statsTable ng-scope')]")
-    top_bowlers = bat.css("div.st-ply-name.ng-binding").map { |node| node.text.strip }.uniq
-
+    #  sleep 7
     render json: { venue: venue.as_json,
+                   match_no: match_no,
                    innings_I: innings_I.as_json,
                    team_I: team_I.as_json,
                    innings_II: innings_II.as_json,
@@ -303,7 +345,7 @@ class PlayersController < ApplicationController
                    extras: extras,
                    bowlers_data: bowlers_data.as_json,
                    batsmen_data_II: batsmen_data_II.as_json,
-                   extras_II: extras_II,
+                   extras_II: extras_II.as_json,
                    bowlers_data_II: bowlers_data_II.as_json,
                    best_partnership: best_partnership.as_json,
                    top_run_getter: top_run_getter.as_json,
@@ -312,8 +354,12 @@ class PlayersController < ApplicationController
                    max_wickets: max_wickets.as_json,
                    eco_bowler: eco_bowler.as_json,
                    mvp: mvp.as_json,
-                   man_of_the_match: man_of_the_match,
-                   top_batsmen: top_batsmen,
-                   top_bowlers: top_bowlers }
+                   man_of_the_match: man_of_the_match.as_json,
+                   top_batsmen: top_batsmen.as_json,
+                   top_bowlers: top_bowlers.as_json,
+                   first_tab: first_tab,
+                   second_tab: second_tab,
+                   batsmen_run: batsmen_run,
+                   batsmen_run_II: batsmen_run_II }
   end
 end
