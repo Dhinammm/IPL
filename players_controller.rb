@@ -149,13 +149,15 @@ class PlayersController < ApplicationController
       end
     end
 
-    batsmen_run = batsmen_data.map do |player|
+    batsmen_name = batsmen_data.map do |player|
       {
         name: player[0],
-        runs: player[2].to_i,
+
       }
     end
-
+    batsmen_run = batsmen_data.map do |player|
+      { runs: player[2].to_i }
+    end
     partnerships = html.css("ul.partnerContent > li").map do |li|
       players = li.css("div.partners-name .prName").map(&:text)
       scores = li.css("div.partners-name .prScore").map { |s| s.text.strip }
@@ -289,11 +291,14 @@ class PlayersController < ApplicationController
     #team_I_id = Team.where(name: team_I).first.id
     #   team_II_id = Team.where(name: team_II).first.id
 
-    batsmen_run_II = batsmen_data_II.map do |player|
+    batsmen_name_II = batsmen_data_II.map do |player|
       {
         name: player[0],
-        runs: player[2].to_i,
+
       }
+    end
+    batsmen_run_II = batsmen_data_II.map do |player|
+      { runs: player[2].to_i }
     end
     #    Match.create!(venue: venue, innings_I: innings_I, innings_II: innings_II, toss: toss, man_of_the_match: man_of_the_match, winner: winner, team_I_id: team_I_id, team_II_id: team_II_id, date: date, first_batting: first_batting, match_no: match_no)
     #   Source.create!(html: html, html1: html1)
@@ -326,7 +331,13 @@ class PlayersController < ApplicationController
       row.css("td").map { |td| td.text.strip }
     end
 
-    #  sleep 7
+    # sleep 7
+    emerging_players = EmergingPlayer.find_by(id: 1)
+
+    # emerging_players = poll.at_xpath(".//div[contains(@class,'container px-0 pb-2 choice-poll')]")
+    emerging_players = Nokogiri::HTML(emerging_players.emerging_players)
+    emerging_players_name = emerging_players.css("span.name.w-100").map { |name| name.text.strip }
+    emerging_players_vote = emerging_players.css("div.pro-value").map { |vote| vote.text.strip }
     render json: { venue: venue.as_json,
                    match_no: match_no,
                    innings_I: innings_I.as_json,
@@ -360,6 +371,9 @@ class PlayersController < ApplicationController
                    first_tab: first_tab,
                    second_tab: second_tab,
                    batsmen_run: batsmen_run,
-                   batsmen_run_II: batsmen_run_II }
+                   batsmen_run_II: batsmen_run_II,
+                   batsmen_name: batsmen_name,
+                   batsmen_name_II: batsmen_name_II,
+                   emerging_players_name: emerging_players_name }
   end
 end
