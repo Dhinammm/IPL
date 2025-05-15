@@ -29,7 +29,7 @@ class UpdateController < ApplicationController
     ret_val = doc.at_css(".vn-matchOrder.ng-binding.ng-scope")&.text&.strip
     ret_val = ret_val.gsub("Match ", "").to_i
     curr_val = Source.maximum(:match_no)
-    while (curr_val < ret_val)
+    while (curr_val + 1798 < ret_val + 1798)
       driver.navigate.to "https://iplt20.com/matches/results"
 
       driver.manage.timeouts.implicit_wait = 100
@@ -57,6 +57,14 @@ class UpdateController < ApplicationController
     bat = Nokogiri::HTML(driver.page_source)
     sleep 5
     elements = driver.find_elements(:css, ".cSBDisplay")[1].click
+    sleep 7
+
+    elements = driver.find_elements(:css, ".cSBListItems")[29].click
+
+    sleep 7
+    top_striker = driver.page_source
+    sleep 9
+    elements = driver.find_elements(:css, ".cSBDisplay")[1].click
     sleep 3
     elements = driver.find_elements(:css, ".cSBListFItems")[1].click
     sleep 3
@@ -71,6 +79,8 @@ class UpdateController < ApplicationController
     sleep 3
     poll = Nokogiri::HTML(driver.page_source)
     sleep 5
+
+    player_stats.update(batters: bat, bowlers: bowl, top_strikers: top_striker)
     emerging_players = EmergingPlayer.find(1)
     emerging_players.update(emerging_players: poll)
     # render json: { venue: venue.as_json,

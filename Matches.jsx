@@ -3,11 +3,32 @@ import "./App.css";
 import { matchContext } from "./App";
 
 function Matches() {
-  const { matches, Team_I, Team_II } = useContext(matchContext);
+  function click_here(i) {
+    setId(last_match - i);
+    setBL(false);
+    setBT(false);
+    setHome(true);
+    setCharts(false);
+    setval(false);
+    setemp(false);
+  }
+  const {
+    matches,
+    Team_I,
+    Team_II,
+    last_match,
+    setId,
+    setHome,
+    setBL,
+    setBT,
+    setCharts,
+    setval,
+    setemp,
+  } = useContext(matchContext);
 
   return (
     <div className="min-h-screen bg-white-100 py-10 px-4 font-serif text">
-      <div className="max-w-5xl mx-auto bg-white shadow-lg rounded-lg p-8 text-xl">
+      <div className="mx-auto bg-white shadow-lg rounded-lg p-8 text-xl">
         <table className="p-3 w-full table-auto border-collapse relative">
           <thead className="bg-pink-500 text-white">
             <tr>

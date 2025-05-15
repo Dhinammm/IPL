@@ -331,6 +331,13 @@ class PlayersController < ApplicationController
       row.css("td").map { |td| td.text.strip }
     end
 
+    top_strikers = Nokogiri::HTML(player_stats.top_strikers)
+
+    players = top_strikers.xpath("//table[contains(@class,'st-table statsTable ng-scope')]")
+    # top_bowlers = bowl.css("div.st-ply-name.ng-binding").map { |node| node.text.strip }.uniq
+    top_strikers = top_strikers.css(".st-table.statsTable.ng-scope tbody tr").map do |row|
+      row.css("td").map { |td| td.text.strip }
+    end
     # sleep 7
     emerging_players = EmergingPlayer.find_by(id: 1)
 
@@ -338,6 +345,8 @@ class PlayersController < ApplicationController
     emerging_players = Nokogiri::HTML(emerging_players.emerging_players)
     emerging_players_name = emerging_players.css("span.name.w-100").map { |name| name.text.strip }
     emerging_players_vote = emerging_players.css("div.pro-value").map { |vote| vote.text.strip }
+
+    emerging_players
     render json: { venue: venue.as_json,
                    match_no: match_no,
                    innings_I: innings_I.as_json,
@@ -366,14 +375,15 @@ class PlayersController < ApplicationController
                    eco_bowler: eco_bowler.as_json,
                    mvp: mvp.as_json,
                    man_of_the_match: man_of_the_match.as_json,
-                   top_batsmen: top_batsmen.as_json,
-                   top_bowlers: top_bowlers.as_json,
+                   top_batsmen: top_batsmen,
+                   top_bowlers: top_bowlers,
                    first_tab: first_tab,
                    second_tab: second_tab,
                    batsmen_run: batsmen_run,
                    batsmen_run_II: batsmen_run_II,
                    batsmen_name: batsmen_name,
                    batsmen_name_II: batsmen_name_II,
-                   emerging_players_name: emerging_players_name }
+                   emerging_players_name: emerging_players_name,
+                   top_strikers: top_strikers }
   end
 end

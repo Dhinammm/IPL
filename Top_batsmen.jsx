@@ -23,36 +23,46 @@ function Top_batsmen() {
   ];
 
   return (
-    <div className="min-h-screen bg-white-100 py-10 px-4 font-serif text">
-      <div className="max-w-5xl mx-auto bg-white shadow-lg rounded-lg p-8 text-xl">
-        <h1 className="text-3xl font-extrabold text-center text-green-700 mb-6">
-          Top batsmen
-        </h1>
+    <>
+      <h1 className="text-3xl font-extrabold text-center text-green-700 mb-6">
+        Top batsmen
+      </h1>
 
-        <table className="table-auto w-full bg-white border border-gray-300">
-          <thead className="bg-pink-500 text-white">
-            <tr>
-              {batsmanHeaders.map((header, index) => (
-                <th key={index} className="p-2 border text-left">
-                  {header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {top_batsmen.map((batsmen, i) => (
-              <tr key={i} className="hover:bg-blue-100">
-                {batsmen.map((value, j) => (
-                  <td key={j} className="p-2 border">
-                    {value}
-                  </td>
+      <table className="table-auto w-full bg-white shadow-md  overflow-hidden">
+        <div className="min-h-screen bg-white-100 py-10 px-4 font-serif text">
+          <div className="mx-auto bg-white shadow-lg rounded-lg p-8 text-xl">
+            <thead className="bg-blue-500 text-white">
+              <tr>
+                {batsmanHeaders.map((header, index) => (
+                  <th
+                    key={index}
+                    className="px-4 py-3 text-left text-sm font-semibold"
+                  >
+                    {header}
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+            </thead>
+            <tbody>
+              {top_batsmen.map((batsmen, i) => (
+                <tr
+                  key={i}
+                  className={`${
+                    i % 2 === 0 ? "bg-white" : "bg-gray-50"
+                  } hover:bg-blue-100 transition-colors`}
+                >
+                  {batsmen.map((value, j) => (
+                    <td key={j} className="px-4 py-3 text-xl">
+                      {value}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </div>
+        </div>
+      </table>
+    </>
   );
 }
 
